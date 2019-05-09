@@ -43,7 +43,9 @@ CPU: Intel 3770K
 # References
 
 [1] [Fisher-Yates](https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle)
+
 [2] https://stackoverflow.com/questions/1640258/need-a-fast-random-generator-for-c
+
 [3] https://github.com/raylee/xorshf96
 
 
