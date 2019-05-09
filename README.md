@@ -1,8 +1,8 @@
 
 # ShuffleGenerator
 
-* Incrementally generate large shuffled arrays. 
-* Can be used to shuffle huge data sets, one batch at a time.
+* Incrementally generate a shuffled version of a range array, e.g. shuffle([0, 1, 2, ..., n-1]).
+* Resulting numbers can be used as indices to shuffle huge data sets, one batch at a time.
 * In-core, requires roughly numberOfElements * 4 bytes of memory.
 
 # Usage
