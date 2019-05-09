@@ -1,7 +1,7 @@
 
 # ShuffleGenerator
 
-* Incrementally generate a shuffled version of a range array, e.g. shuffle([0, 1, 2, ..., n-1]).
+* Incrementally generate a shuffled version of a range array, e.g. ```shuffle( [0, 1, 2, ..., n-1] )```.
 * Resulting numbers can be used as indices to shuffle huge data sets, one batch at a time.
 * In-core, requires roughly numberOfElements * 4 bytes of memory.
 
@@ -25,6 +25,15 @@ vector<uint32_t> values2 = gen.getNextValues(500'000);
 uint32_t a = gen.getNextValue();
 uint32_t b = gen.getNextValue();
 ```
+
+# Performance
+
+CPU: Intel 3770K
+
+| n   | retrieved | time   |
+| --- | --------- | ----   |
+| 20M | 20M       | 0.611s |
+| 20M | 1M        | 0.067s |
 
 # Potential Issues
 
