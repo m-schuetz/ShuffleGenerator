@@ -4,23 +4,17 @@
 
 #include <iostream>
 #include <chrono>
-#include <unordered_map>
 #include <vector>
-#include <filesystem>
 #include <cstdlib>
 #include <iomanip>
-#include <random>
-#include <immintrin.h>
+#include <algorithm>
 
-using std::unordered_map;
 using std::vector;
 using std::cout;
 using std::endl;
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
 using std::chrono::duration_cast;
-
-namespace fs = std::experimental::filesystem;
 
 static long long start_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 
@@ -36,21 +30,20 @@ double now() {
 
 ///
 /// * Incrementally generates a shuffled array in a given range.
-/// * Values are shuffled on demand using the Fisher-Yates algorithm
-/// * Chunks of the 
+/// * Shuffled values are generated on demand using the Fisher-Yates algorithm
 ///
 class ShuffleGenerator {
 
 	vector<uint32_t> indices;
-	
-	// should end up being the max of uint32_t
-	static const uint32_t dval = -1; 
+
+	// max value of uint32_t
+	static const uint32_t dval = -1;
 
 	uint32_t current = 0;
 
 	uint32_t n = 0;
 
-public: 
+public:
 
 	ShuffleGenerator(uint32_t size) {
 		n = size;
@@ -68,10 +61,10 @@ public:
 
 		uint32_t a = indices[current];
 		uint32_t b = indices[index];
-		
+
 		a = a == dval ? current : a;
 		b = b == dval ? index : b;
-		
+
 		indices[current] = b;
 		indices[index] = a;
 
@@ -80,7 +73,7 @@ public:
 		return b;
 	}
 
-	// get the next few values
+	/// get the next few values
 	vector<uint32_t> getNextValues(int chunkSize) {
 
 		int start = current;
@@ -93,15 +86,14 @@ public:
 			values[i - start] = getNextValue();
 		}
 
-		// I honestly have no idea if move works or whether it's necessary here
 		return std::move(values);
 	}
 
-	// see 
-	// * https://stackoverflow.com/questions/1640258/need-a-fast-random-generator-for-c
-	// * https://github.com/raylee/xorshf96
-	//
-	// not recommended according to the latter but will use for now until issues arise
+	/// see 
+	/// * https://stackoverflow.com/questions/1640258/need-a-fast-random-generator-for-c
+	/// * https://github.com/raylee/xorshf96
+	///
+	/// not recommended according to the latter but will use for now until issues arise
 	static uint32_t xorshf96(void) {
 
 		static uint32_t x = 123456789, y = 362436069, z = 521288629;
@@ -127,7 +119,7 @@ int main() {
 	cout << std::setprecision(3) << std::fixed;
 
 	{
-		cout << "===== 01 ====" << endl; 
+		cout << "===== 01 ====" << endl;
 		cout << "Generate 123 values, print them" << endl;
 
 		int n = 123;
@@ -149,7 +141,7 @@ int main() {
 	}
 
 
-	{ 
+	{
 		// Generate shuffle of 7 elements, try retrieve 10 elements. 
 		// last 3 will be ShuffleGenerator::dval
 
@@ -175,7 +167,7 @@ int main() {
 		cout << "Generate 20M values, shuffle, print first 10" << endl;
 
 		auto start = now();
-		
+
 		int n = 20'000'000;
 		ShuffleGenerator gen(n);
 
