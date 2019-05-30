@@ -8,13 +8,18 @@
 #include <cstdlib>
 #include <iomanip>
 #include <algorithm>
+#include <thread>
+#include <mutex>
 
 using std::vector;
 using std::cout;
 using std::endl;
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
-using std::chrono::duration_cast;
+using std::chrono::duration_cast; 
+using std::mutex;
+using std::unique_lock;
+using std::lock_guard;
 
 static long long start_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 
@@ -43,6 +48,8 @@ class ShuffleGenerator {
 
 	uint32_t n = 0;
 
+	mutex mtx;
+
 public:
 
 	ShuffleGenerator(uint32_t size) {
@@ -53,18 +60,14 @@ public:
 	/// get the next value
 	uint32_t getNextValue() {
 
-		if (current >= n) {
-			return dval;
-		}
-
 		uint32_t index = xorshf96() % (n - current) + current;
 
 		uint32_t a = indices[current];
 		uint32_t b = indices[index];
-
+		
 		a = a == dval ? current : a;
 		b = b == dval ? index : b;
-
+		
 		indices[current] = b;
 		indices[index] = a;
 
@@ -80,11 +83,19 @@ public:
 		int end = std::min(current + chunkSize, n);
 		int size = end - start;
 
-		vector<uint32_t> values(size);
+		double tStart = now();
+
+		vector<uint32_t> values(size, dval);
+
+		double tReserved = now();
 
 		for (int i = start; i < end; i++) {
 			values[i - start] = getNextValue();
 		}
+
+		double tEnd = now();
+		cout << "reserve: " << (tReserved - tStart) << endl;
+		cout << "total: " << (tEnd - tStart) << endl;
 
 		return std::move(values);
 	}
@@ -113,99 +124,144 @@ public:
 
 };
 
+void rTest() {
+
+	uint64_t sum = 0;
+	uint64_t n = 120'000'000;
+
+	for (int i = 0; i < n; i++) {
+		sum += ShuffleGenerator::xorshf96() % 10;
+	}
+
+	cout << "sum: " << sum << endl;
+
+}
+
+void speedTest() {
+
+	int n = 120'000'000;
+	ShuffleGenerator gen(n);
+
+	auto res = gen.getNextValues(n);
+
+	uint64_t sum = 0;
+	for (int i = 0; i < 1000; i++) {
+		uint32_t rand = ShuffleGenerator::xorshf96() % n;
+
+		sum += res[rand];
+	}
+
+	cout << "sum: " << sum << endl;
+}
 
 int main() {
 
 	cout << std::setprecision(3) << std::fixed;
 
-	{
-		cout << "===== 01 ====" << endl;
-		cout << "Generate 123 values, print them" << endl;
+	double start = now();
 
-		int n = 123;
-		ShuffleGenerator gen(n);
+	speedTest();
+	//rTest();
 
-		cout << gen.getNextValue() << endl;
-		cout << gen.getNextValue() << endl;
-
-		vector<uint32_t> values = gen.getNextValues(123);
-
-		for (auto value : values) {
-			cout << value << ", ";
-		}
-
-		// The result will have 121 elements, because we've already 
-		// retrieved 2 elements before and there are only 121 elements left.
-
-		cout << endl << endl;
-	}
-
-
-	{
-		// Generate shuffle of 7 elements, try retrieve 10 elements. 
-		// last 3 will be ShuffleGenerator::dval
-
-		cout << "===== 02 ====" << endl;
-		cout << "Generate 7 values, retrieve 10" << endl;
-
-		int n = 7;
-		ShuffleGenerator gen(n);
-
-		for (int i = 0; i < 10; i++) {
-
-			auto val = gen.getNextValue();
-
-			cout << i << ": " << val << endl;
-		}
-
-		cout << endl;
-	}
-
-	{
-		// checking performance of generating and retrieving 20 million elements
-		cout << "===== 03 ====" << endl;
-		cout << "Generate 20M values, shuffle, print first 10" << endl;
-
-		auto start = now();
-
-		int n = 20'000'000;
-		ShuffleGenerator gen(n);
-
-		vector<uint32_t> values = gen.getNextValues(n);
-
-		for (int i = 0; i < 10; i++) {
-			cout << i << ": " << values[i] << endl;
-		}
-
-		auto end = now();
-		auto duration = end - start;
-
-		cout << "duration: " << duration << "s" << endl;
-		cout << endl;
-	}
-
-	{
-		// checking performance of generating 20M elements, retrieving 5
-		cout << "===== 04 ====" << endl;
-		cout << "Generate 20M values, shuffle, retrieve 1M values, print first 10" << endl;
-
-		auto start = now();
-
-		int n = 20'000'000;
-		ShuffleGenerator gen(n);
-
-		vector<uint32_t> values = gen.getNextValues(1'000'000);
-
-		for (int i = 0; i < 10; i++) {
-			cout << i << ": " << values[i] << endl;
-		}
-
-		auto end = now();
-		auto duration = end - start;
-
-		cout << "duration: " << duration << "s" << endl;
-		cout << endl;
-	}
+	double end = now();
+	cout << "duration: " << (end - start) << endl;
 
 	return 0;
 }
+
+
+//int main() {
+//
+//	cout << std::setprecision(3) << std::fixed;
+//
+//	{
+//		cout << "===== 01 ====" << endl;
+//		cout << "Generate 123 values, print them" << endl;
+//
+//		int n = 123;
+//		ShuffleGenerator gen(n);
+//
+//		cout << gen.getNextValue() << endl;
+//		cout << gen.getNextValue() << endl;
+//
+//		vector<uint32_t> values = gen.getNextValues(123);
+//
+//		for (auto value : values) {
+//			cout << value << ", ";
+//		}
+//
+//		// The result will have 121 elements, because we've already 
+//		// retrieved 2 elements before and there are only 121 elements left.
+//
+//		cout << endl << endl;
+//	}
+//
+//
+//	{
+//		// Generate shuffle of 7 elements, try retrieve 10 elements. 
+//		// last 3 will be ShuffleGenerator::dval
+//
+//		cout << "===== 02 ====" << endl;
+//		cout << "Generate 7 values, retrieve 10" << endl;
+//
+//		int n = 7;
+//		ShuffleGenerator gen(n);
+//
+//		for (int i = 0; i < 10; i++) {
+//
+//			auto val = gen.getNextValue();
+//
+//			cout << i << ": " << val << endl;
+//		}
+//
+//		cout << endl;
+//	}
+//
+//	{
+//		// checking performance of generating and retrieving 20 million elements
+//		cout << "===== 03 ====" << endl;
+//		cout << "Generate 20M values, shuffle, print first 10" << endl;
+//
+//		auto start = now();
+//
+//		int n = 20'000'000;
+//		ShuffleGenerator gen(n);
+//
+//		vector<uint32_t> values = gen.getNextValues(n);
+//
+//		for (int i = 0; i < 10; i++) {
+//			cout << i << ": " << values[i] << endl;
+//		}
+//
+//		auto end = now();
+//		auto duration = end - start;
+//
+//		cout << "duration: " << duration << "s" << endl;
+//		cout << endl;
+//	}
+//
+//	{
+//		// checking performance of generating 20M elements, retrieving 5
+//		cout << "===== 04 ====" << endl;
+//		cout << "Generate 20M values, shuffle, retrieve 1M values, print first 10" << endl;
+//
+//		auto start = now();
+//
+//		int n = 20'000'000;
+//		ShuffleGenerator gen(n);
+//
+//		vector<uint32_t> values = gen.getNextValues(1'000'000);
+//
+//		for (int i = 0; i < 10; i++) {
+//			cout << i << ": " << values[i] << endl;
+//		}
+//
+//		auto end = now();
+//		auto duration = end - start;
+//
+//		cout << "duration: " << duration << "s" << endl;
+//		cout << endl;
+//	}
+//
+//	return 0;
+//}
